@@ -114,18 +114,21 @@ public class BukkitNetworkManager implements PacketSender, PipelineInjector {
 
     @Override
     public void setUser(Channel channel, CNPlayer user) {
+        if (channel == null) return;
         ChannelPipeline pipeline = channel.pipeline();
         users.put(pipeline, user);
     }
 
     @Override
     public CNPlayer getUser(Channel channel) {
+        if (channel == null) return null;
         ChannelPipeline pipeline = channel.pipeline();
         return users.get(pipeline);
     }
 
     @Override
     public CNPlayer removeUser(Channel channel) {
+        if (channel == null) return null;
         ChannelPipeline pipeline = channel.pipeline();
         return users.remove(pipeline);
     }
@@ -168,7 +171,13 @@ public class BukkitNetworkManager implements PacketSender, PipelineInjector {
         }
 
         for (Player player : Bukkit.getOnlinePlayers()) {
+            if (isFakePlayer(player)) {
+                continue;
+            }
             Channel channel = getChannel(player);
+            if (isFakeChannel(channel)) {
+                continue;
+            }
             CNPlayer user = getUser(player);
             if (user == null) {
                 BukkitCNPlayer cnPlayer = new BukkitCNPlayer(plugin, channel);
@@ -200,15 +209,15 @@ public class BukkitNetworkManager implements PacketSender, PipelineInjector {
     @Override
     public Channel getChannel(Object player) {
         try {
-            return (Channel) Reflections.field$Channel.get(
-                    Reflections.field$NetworkManager.get(
-                            Reflections.field$PlayerConnection.get(
-                                    Reflections.method$CraftPlayer$getHandle.invoke(player)
-                            )
-                    )
-            );
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
+            Object handle = Reflections.method$CraftPlayer$getHandle.invoke(player);
+            if (handle == null) return null;
+            Object connection = Reflections.field$PlayerConnection.get(handle);
+            if (connection == null) return null;
+            Object networkManager = Reflections.field$NetworkManager.get(connection);
+            if (networkManager == null) return null;
+            return (Channel) Reflections.field$Channel.get(networkManager);
+        } catch (Throwable e) {
+            return null;
         }
     }
 
@@ -222,6 +231,9 @@ public class BukkitNetworkManager implements PacketSender, PipelineInjector {
     }
 
     public void handleDisconnection(Channel channel) {
+        if (isFakeChannel(channel)) {
+            return;
+        }
         if (channel.pipeline().get(NAMEPLATES_PACKET_HANDLER_NAME) != null) {
             channel.pipeline().remove(NAMEPLATES_PACKET_HANDLER_NAME);
         }
@@ -314,8 +326,36 @@ public class BukkitNetworkManager implements PacketSender, PipelineInjector {
         }
     }
 
+    public static boolean isFakePlayer(Player player) {
+        if (player == null) {
+            return true;
+        }
+        return player.hasMetadata("NPC")
+                || player.hasMetadata("fake_player")
+                || player.hasMetadata("spoofed")
+                || player.hasMetadata("HaloSpoofer")
+                || player.hasMetadata("bot");
+    }
+
     public static boolean isFakeChannel(Object channel) {
-        return channel.getClass().getSimpleName().equals("FakeChannel")
-                || channel.getClass().getSimpleName().equals("SpoofedChannel");
+        if (channel == null) {
+            return true;
+        }
+        String simpleName = channel.getClass().getSimpleName();
+        return simpleName.equals("FakeChannel")
+                || simpleName.equals("SpoofedChannel")
+                || simpleName.equals("DummyChannel")
+                || simpleName.equals("EmptyChannel")
+                || simpleName.equals("MockChannel")
+                || simpleName.equals("NullChannel")
+                || simpleName.equals("VirtualChannel")
+                || simpleName.equals("NPCChannel")
+                || simpleName.equals("HaloChannel")
+                || simpleName.equals("HaloSpooferChannel")
+                || simpleName.equals("EmbeddedChannel")
+                || simpleName.equals("LocalChannel")
+                || simpleName.contains("Fake")
+                || simpleName.contains("Spoof")
+                || simpleName.contains("Dummy");
     }
 }

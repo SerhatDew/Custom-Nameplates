@@ -403,6 +403,9 @@ public class BukkitCustomNameplates extends CustomNameplates implements Listener
     }
 
     public void handleJoin(Player player) {
+        if (BukkitNetworkManager.isFakePlayer(player) || BukkitNetworkManager.isFakeChannel(pipelineInjector.getChannel(player))) {
+            return;
+        }
         CNPlayer user = pipelineInjector.getUser(player);
         if (user == null) {
             return;
@@ -424,6 +427,10 @@ public class BukkitCustomNameplates extends CustomNameplates implements Listener
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
+        if (BukkitNetworkManager.isFakePlayer(player) || BukkitNetworkManager.isFakeChannel(pipelineInjector.getChannel(player))) {
+            onlinePlayerMap.remove(player.getUniqueId());
+            return;
+        }
         CNPlayer cnPlayer = onlinePlayerMap.remove(player.getUniqueId());
         if (cnPlayer == null) {
             return;
