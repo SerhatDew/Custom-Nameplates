@@ -23,6 +23,11 @@ import java.util.List;
 
 public class EntityData<T> {
 
+    public static void initialize() {
+        if (EntityMasks.serializer() == null) {
+            throw new IllegalStateException("EntityData failed to initialize");
+        }
+    }
     private final int id;
     private final Object serializer;
     private final T defaultValue;

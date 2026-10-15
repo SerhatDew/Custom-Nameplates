@@ -48,6 +48,7 @@ import net.momirealms.customnameplates.bukkit.compatibility.region.WorldGuardReg
 import net.momirealms.customnameplates.bukkit.requirement.BukkitRequirementManager;
 import net.momirealms.customnameplates.bukkit.scheduler.BukkitSchedulerAdapter;
 import net.momirealms.customnameplates.bukkit.tag.BukkitUnlimitedTagManager;
+import net.momirealms.customnameplates.bukkit.util.EntityData;
 import net.momirealms.customnameplates.bukkit.util.Reflections;
 import net.momirealms.customnameplates.bukkit.util.SimpleLocation;
 import net.momirealms.customnameplates.common.dependency.Dependency;
@@ -134,6 +135,7 @@ public class BukkitCustomNameplates extends CustomNameplates implements Listener
                 )
         );
         Reflections.load();
+        EntityData.initialize();
     }
 
     @Override

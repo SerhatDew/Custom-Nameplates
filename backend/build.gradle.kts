@@ -29,8 +29,16 @@ dependencies {
     compileOnly("it.unimi.dsi:fastutil:${rootProject.properties["fastutil_version"]}")
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
-    options.release.set(21)
+    options.release.set(25)
     dependsOn(tasks.clean)
 }

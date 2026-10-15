@@ -20,8 +20,11 @@ package net.momirealms.customnameplates.bukkit.util;
 import net.momirealms.customnameplates.api.helper.VersionHelper;
 import net.momirealms.customnameplates.common.util.ReflectionUtils;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Objects;
-
 public class EntityDataValue {
 
     private static int internalID = 0;
@@ -110,7 +113,44 @@ public class EntityDataValue {
     }
 
     private static Object initSerializersByName(String name) throws ReflectiveOperationException {
-        return Objects.requireNonNull(ReflectionUtils.getDeclaredField(Reflections.clazz$EntityDataSerializers, new String[]{fieldsObf[internalID++], name}).get(null));
+        Field named;
+        try {
+            named = ReflectionUtils.getDeclaredField(Reflections.clazz$EntityDataSerializers, name);
+        } catch (RuntimeException ignored) {
+            named = null;
+        }
+        if (named != null) {
+            named.setAccessible(true);
+            return named.get(null);
+        }
+        for (Field field : Reflections.clazz$EntityDataSerializers.getDeclaredFields()) {
+            if (!Modifier.isStatic(field.getModifiers())
+                    || !Reflections.clazz$EntityDataSerializer.isAssignableFrom(field.getType())) {
+                continue;
+            }
+            Type genericType = field.getGenericType();
+            if (!(genericType instanceof ParameterizedType parameterizedType)) continue;
+            Type[] arguments = parameterizedType.getActualTypeArguments();
+            if (arguments.length != 1 || !serializerValueMatches(name, arguments[0])) continue;
+            field.setAccessible(true);
+            return field.get(null);
+        }
+        return null;
+    }
+
+    private static boolean serializerValueMatches(String serializerName, Type valueType) {
+        String typeName = valueType.getTypeName();
+        return switch (serializerName) {
+            case "BYTE" -> typeName.equals(Byte.class.getName());
+            case "INT" -> typeName.equals(Integer.class.getName());
+            case "LONG" -> typeName.equals(Long.class.getName());
+            case "FLOAT" -> typeName.equals(Float.class.getName());
+            case "STRING" -> typeName.equals(String.class.getName());
+            case "COMPONENT" -> typeName.equals(Reflections.clazz$Component.getName());
+            case "VECTOR3" -> typeName.equals("org.joml.Vector3fc");
+            case "QUATERNION" -> typeName.equals("org.joml.Quaternionfc");
+            default -> false;
+        };
     }
 
     private EntityDataValue() {
